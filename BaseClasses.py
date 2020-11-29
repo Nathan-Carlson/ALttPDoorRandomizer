@@ -863,15 +863,15 @@ class CollectionState(object):
                 self.blocked_connections[item.player] = dict()
                 self.stale[item.player] = True
 
-    def __getattr__(self, item):
-        if item.startswith('can_reach_'):
-            return self.can_reach(item[10])
-        #elif item.startswith('has_'):
-        #    return self.has(item[4])
-        if item == '__len__':
-            return
+    # def __getattr__(self, item):
+    #     if item.startswith('can_reach_'):
+    #         return self.can_reach(item[10])
+    #     #elif item.startswith('has_'):
+    #     #    return self.has(item[4])
+    #     if item == '__len__':
+    #         return
 
-        raise RuntimeError('Cannot parse %s.' % item)
+    #     raise RuntimeError('Cannot parse %s.' % item)
 
 @unique
 class RegionType(Enum):
@@ -1962,7 +1962,11 @@ class Spoiler(object):
     def to_file(self, filename):
         self.parse_data()
         with open(filename, 'w') as outfile:
-            outfile.write('ALttP Entrance Randomizer Version %s  -  Seed: %s\n\n' % (self.metadata['version'], self.world.seed))
+            outfile.write('ALttP Entrance Randomizer Version %s  -  Seed: %s\n' % (self.metadata['version'], self.world.seed))
+            outfile.write('Player Seeds:')
+            for player in range(1, self.world.players + 1):
+                outfile.write(' %d' % self.world.player_seeds[player - 1])
+            outfile.write('\n')
             outfile.write('Filling Algorithm:               %s\n' % self.world.algorithm)
             outfile.write('Players:                         %d\n' % self.world.players)
             outfile.write('Teams:                           %d\n' % self.world.teams)

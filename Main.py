@@ -91,51 +91,71 @@ def main(args, seed=None, fish=None):
             world.player_names[player].append(name)
     logger.info('')
 
-    for player in range(1, world.players + 1):
-        world.difficulty_requirements[player] = difficulties[world.difficulty[player]]
-
-        if world.mode[player] == 'standard' and world.enemy_shuffle[player] != 'none':
-            if hasattr(world,"escape_assist") and player in world.escape_assist:
-                world.escape_assist[player].append('bombs') # enemized escape assumes infinite bombs available and will likely be unbeatable without it
-
-        for tok in filter(None, args.startinventory[player].split(',')):
-            item = ItemFactory(tok.strip(), player)
-            if item:
-                world.push_precollected(item)
-
-        if world.mode[player] != 'inverted':
-            create_regions(world, player)
-        else:
-            create_inverted_regions(world, player)
-        create_dungeon_regions(world, player)
-        create_shops(world, player)
-        create_doors(world, player)
-        create_rooms(world, player)
-        create_dungeons(world, player)
-        adjust_locations(world, player)
-
-    if any(world.potshuffle):
-        logger.info(world.fish.translate("cli", "cli", "shuffling.pots"))
-        for player in range(1, world.players + 1):
-            if world.potshuffle[player]:
-                shuffle_pots(world, player)
-
-    logger.info(world.fish.translate("cli","cli","shuffling.world"))
+    prePlayerState = random.getstate()
+    world.player_seeds = []
 
     for player in range(1, world.players + 1):
-        if world.mode[player] != 'inverted':
-            link_entrances(world, player)
-        else:
-            link_inverted_entrances(world, player)
+        generated = False
+        while generated == False:
+            playerSeed = random.randint(0, 999999999)
+            logger.info('Player %d - Seed %d' % (player, playerSeed))
+            playerGenState = random.getstate()
+            random.seed(playerSeed)
 
-    logger.info(world.fish.translate("cli","cli","shuffling.dungeons"))
+            worldCopy = copy.deepcopy(world)
 
-    for player in range(1, world.players + 1):
-        link_doors(world, player)
-        if world.mode[player] != 'inverted':
-            mark_light_world_regions(world, player)
-        else:
-            mark_dark_world_regions(world, player)
+            try:
+                worldCopy.difficulty_requirements[player] = difficulties[worldCopy.difficulty[player]]
+
+                if worldCopy.mode[player] == 'standard' and worldCopy.enemy_shuffle[player] != 'none':
+                    if hasattr(worldCopy,"escape_assist") and player in worldCopy.escape_assist:
+                        worldCopy.escape_assist[player].append('bombs') # enemized escape assumes infinite bombs available and will likely be unbeatable without it
+
+                for tok in filter(None, args.startinventory[player].split(',')):
+                    item = ItemFactory(tok.strip(), player)
+                    if item:
+                        worldCopy.push_precollected(item)
+
+                if worldCopy.mode[player] != 'inverted':
+                    create_regions(worldCopy, player)
+                else:
+                    create_inverted_regions(worldCopy, player)
+                create_dungeon_regions(worldCopy, player)
+                create_shops(worldCopy, player)
+                create_doors(worldCopy, player)
+                create_rooms(worldCopy, player)
+                create_dungeons(worldCopy, player)
+                adjust_locations(worldCopy, player)
+
+                if any(worldCopy.potshuffle):
+                    logger.info(worldCopy.fish.translate("cli", "cli", "shuffling.pots"))
+                    if worldCopy.potshuffle[player]:
+                        shuffle_pots(worldCopy, player)
+
+                logger.info(worldCopy.fish.translate("cli","cli","shuffling.world"))
+
+                if worldCopy.mode[player] != 'inverted':
+                    link_entrances(worldCopy, player)
+                else:
+                    link_inverted_entrances(worldCopy, player)
+
+                logger.info(worldCopy.fish.translate("cli","cli","shuffling.dungeons"))
+
+                link_doors(worldCopy, player)
+                if worldCopy.mode[player] != 'inverted':
+                    mark_light_world_regions(worldCopy, player)
+                else:
+                    mark_dark_world_regions(worldCopy, player)
+
+                world = copy.deepcopy(worldCopy)
+                world.player_seeds.append(playerSeed)
+                generated = True
+            except Exception as e:
+                logger.info(e)
+            random.setstate(playerGenState)
+
+    random.setstate(prePlayerState)
+
     logger.info(world.fish.translate("cli","cli","generating.itempool"))
     logger.info(world.fish.translate("cli","cli","generating.itempool"))
 
